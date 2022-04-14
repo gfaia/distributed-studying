@@ -9,3 +9,15 @@ First, make sure the word-count plugin is freshly built:
 ```sh
 go build -race -buildmode=plugin ../mrapps/wc.go
 ```
+
+Start a coordinator:
+
+```sh
+go run -race mrcoordinator.go pg-*.txt
+```
+
+Start a worker:
+
+```sh
+go build -race -buildmode=plugin ../../pkg/mrapps/wc.go && go run -race mrworker.go wc.so
+```
