@@ -13,7 +13,7 @@ go build -race -buildmode=plugin ../mrapps/wc.go
 Start a coordinator:
 
 ```sh
-go run -race mrcoordinator.go pg-*.txt
+go run -race mrcoordinator.go input/pg-*.txt
 ```
 
 Start a worker:

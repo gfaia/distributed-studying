@@ -22,48 +22,17 @@ type Coordinator struct {
 }
 
 func (c *Coordinator) ApplyTask(args *ApplyTaskArgs, reply *ApplyTaskReply) error {
-	// handle the last task.
 	lastTask := args.LastTask
 	if lastTask.Type != taskDefault {
-		c.mu.Lock()
-
-		// judger whether the task has been reassigned.
-		if task, ok := c.tasks[genTaskID(lastTask.Type, lastTask.ID)]; ok && task.WorkerID == lastTask.WorkerID {
-			log.Printf("mark task %d as finished on worker %d\n", lastTask.ID, lastTask.WorkerID)
-
-			if lastTask.Type == taskMap {
-				for i := 0; i < lastTask.NReduce; i++ {
-					if err := os.Rename(tmpMapOutFile(lastTask.WorkerID, lastTask.ID, i), mapOutFile(lastTask.ID, i)); err != nil {
-						log.Fatalf(err.Error())
-						return err
-					}
-				}
-			} else if lastTask.Type == taskReduce {
-				for i := 0; i < lastTask.NMap; i++ {
-					if err := os.Remove(mapOutFile(i, task.ID)); err != nil {
-						log.Fatalf(err.Error())
-						return err
-					}
-				}
-				if err := os.Rename(tmpReduceOutFile(lastTask.WorkerID, lastTask.ID), reduceOutFile(lastTask.ID)); err != nil {
-					log.Fatalf(err.Error())
-					return err
-				}
-			}
+		if err := c.commitTask(lastTask); err != nil {
+			log.Println(err.Error())
+			return err
 		}
-
-		// delete task only when finshed
-		delete(c.tasks, genTaskID(lastTask.Type, lastTask.ID))
-
-		if len(c.tasks) == 0 {
-			c.transit()
-		}
-
-		c.mu.Unlock()
 	}
 
 	task, ok := <-c.taskQueue
 	if !ok && len(c.tasks) == 0 {
+		log.Printf("map reduce finished\n")
 		return nil
 	}
 
@@ -79,10 +48,44 @@ func (c *Coordinator) ApplyTask(args *ApplyTaskArgs, reply *ApplyTaskReply) erro
 	return nil
 }
 
+func (c *Coordinator) commitTask(lastTask Task) error {
+	c.mu.Lock()
+
+	// judger whether the task has been reassigned.
+	if task, ok := c.tasks[genTaskID(lastTask.Type, lastTask.ID)]; ok && task.WorkerID == lastTask.WorkerID {
+		log.Printf("mark task %d as finished on worker %d\n", lastTask.ID, lastTask.WorkerID)
+
+		if lastTask.Type == taskMap {
+			for i := 0; i < lastTask.NReduce; i++ {
+				if err := os.Rename(tmpMapOutFile(lastTask.WorkerID, lastTask.ID, i), mapOutFile(lastTask.ID, i)); err != nil {
+					return err
+				}
+			}
+		} else if lastTask.Type == taskReduce {
+			for i := 0; i < lastTask.NMap; i++ {
+				if err := os.Remove(mapOutFile(i, task.ID)); err != nil {
+					return err
+				}
+			}
+			if err := os.Rename(tmpReduceOutFile(lastTask.WorkerID, lastTask.ID), reduceOutFile(lastTask.ID)); err != nil {
+				return err
+			}
+		}
+	}
+
+	// delete task only when finshed
+	delete(c.tasks, genTaskID(lastTask.Type, lastTask.ID))
+	if len(c.tasks) == 0 {
+		c.transit()
+	}
+
+	c.mu.Unlock()
+
+	return nil
+}
+
 func (c *Coordinator) transit() {
 	switch c.stage {
-	case stageStart:
-		log.Fatalf("invalid stage")
 	case stageMap:
 		log.Printf("all map tasks finished.\n")
 		c.stage = stageReduce
@@ -101,6 +104,7 @@ func (c *Coordinator) transit() {
 		log.Printf("all reduce tasks finished.\n")
 		c.stage = stageEnd
 		close(c.taskQueue)
+	default:
 	}
 }
 
@@ -123,9 +127,11 @@ func (c *Coordinator) server() {
 func (c *Coordinator) Done() bool {
 	ret := false
 
+	c.mu.Lock()
 	if c.stage == stageEnd {
 		ret = true
 	}
+	c.mu.Unlock()
 
 	return ret
 }

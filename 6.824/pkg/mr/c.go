@@ -53,17 +53,9 @@ type KeyValue struct {
 
 type keyValues []KeyValue
 
-func (kva keyValues) Len() int {
-	return len(kva)
-}
-
-func (kva keyValues) Less(i, j int) bool {
-	return kva[i].Key < kva[j].Key
-}
-
-func (kva keyValues) Swap(i, j int) {
-	kva[i], kva[j] = kva[j], kva[i]
-}
+func (kva keyValues) Len() int           { return len(kva) }
+func (kva keyValues) Less(i, j int) bool { return kva[i].Key < kva[j].Key }
+func (kva keyValues) Swap(i, j int)      { kva[i], kva[j] = kva[j], kva[i] }
 
 func tmpMapOutFile(workerID int, taskID int, reduceID int) string {
 	return fmt.Sprintf("out/map-%d-%d-%d", workerID, taskID, reduceID)

@@ -1,11 +1,5 @@
 package main
 
-//
-// simple sequential MapReduce.
-//
-// go run mrsequential.go wc.so pg*.txt
-//
-
 import (
 	"fmt"
 	"io/ioutil"
@@ -14,7 +8,7 @@ import (
 	"plugin"
 	"sort"
 
-	"6.824/src/mr"
+	"6.824/pkg/mr"
 )
 
 // for sorting by key.
@@ -33,11 +27,9 @@ func main() {
 
 	mapf, reducef := loadPlugin(os.Args[1])
 
-	//
 	// read each input file,
 	// pass it to Map,
 	// accumulate the intermediate Map output.
-	//
 	intermediate := []mr.KeyValue{}
 	for _, filename := range os.Args[2:] {
 		file, err := os.Open(filename)
@@ -53,21 +45,17 @@ func main() {
 		intermediate = append(intermediate, kva...)
 	}
 
-	//
 	// a big difference from real MapReduce is that all the
 	// intermediate data is in one place, intermediate[],
 	// rather than being partitioned into NxM buckets.
-	//
 
 	sort.Sort(ByKey(intermediate))
 
 	oname := "mr-out-0"
 	ofile, _ := os.Create(oname)
 
-	//
 	// call Reduce on each distinct key in intermediate[],
 	// and print the result to mr-out-0.
-	//
 	i := 0
 	for i < len(intermediate) {
 		j := i + 1
@@ -89,10 +77,8 @@ func main() {
 	ofile.Close()
 }
 
-//
 // load the application Map and Reduce functions
 // from a plugin file, e.g. ../mrapps/wc.so
-//
 func loadPlugin(filename string) (func(string, string) []mr.KeyValue, func(string, []string) string) {
 	p, err := plugin.Open(filename)
 	if err != nil {
