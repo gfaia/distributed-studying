@@ -21,6 +21,16 @@ type Coordinator struct {
 	taskQueue chan Task
 }
 
+//
+// an example RPC handler.
+//
+// the RPC argument and reply types are defined in rpc.go.
+//
+func (c *Coordinator) Example(args *ExampleArgs, reply *ExampleReply) error {
+	reply.Y = args.X + 1
+	return nil
+}
+
 func (c *Coordinator) ApplyTask(args *ApplyTaskArgs, reply *ApplyTaskReply) error {
 	lastTask := args.LastTask
 	if lastTask.Type != taskDefault {
@@ -108,7 +118,9 @@ func (c *Coordinator) transit() {
 	}
 }
 
+//
 // start a thread that listens for RPCs from worker.go
+//
 func (c *Coordinator) server() {
 	rpc.Register(c)
 	rpc.HandleHTTP()
@@ -122,8 +134,10 @@ func (c *Coordinator) server() {
 	go http.Serve(l, nil)
 }
 
+//
 // main/mrcoordinator.go calls Done() periodically to find out
 // if the entire job has finished.
+//
 func (c *Coordinator) Done() bool {
 	ret := false
 

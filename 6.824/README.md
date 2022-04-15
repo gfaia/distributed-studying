@@ -7,7 +7,7 @@
 First, make sure the word-count plugin is freshly built:
 
 ```sh
-go build -race -buildmode=plugin ../mrapps/wc.go
+go build -race -buildmode=plugin ../../pkg/mrapps/wc.go
 ```
 
 Start a coordinator:

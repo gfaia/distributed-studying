@@ -5,6 +5,23 @@ import (
 	"strconv"
 )
 
+//
+// example to show how to declare the arguments
+// and reply for an RPC.
+//
+
+type ExampleArgs struct {
+	X int
+}
+
+type ExampleReply struct {
+	Y int
+}
+
+//
+// the arguments and reply for applying task.
+//
+
 type ApplyTaskArgs struct {
 	WorkerID int
 	LastTask Task
